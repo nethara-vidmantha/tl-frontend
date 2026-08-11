@@ -1,5 +1,12 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Dimensions, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity
+} from 'react-native';
 import { MapPin, Clock, ShieldCheck, ArrowRight } from 'lucide-react-native';
 import { COLORS, SIZES, SHADOWS } from '../../constants/theme';
 import Button from '../../components/common/Button';

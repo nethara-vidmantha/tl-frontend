@@ -1,5 +1,11 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity
+} from 'react-native';
 import { MapPin, ArrowLeft, RefreshCw, SlidersHorizontal } from 'lucide-react-native';
 import { COLORS, SIZES, SHADOWS } from '../../constants/theme';
 import { useLocation } from '../../context/LocationContext';

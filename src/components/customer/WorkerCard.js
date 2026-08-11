@@ -85,7 +85,7 @@ const WorkerCard = ({ worker, onPress, onBookPress }) => {
       {/* Bottom CTA Bar */}
       <View style={styles.bottomBar}>
         <Text style={styles.workingHoursText}>
-          🕒 {worker.workingHours?.start || '8:00 AM'} - {worker.workingHours?.end || '6:00 PM'}
+          {worker.workingHours?.start || '8:00 AM'} - {worker.workingHours?.end || '6:00 PM'}
         </Text>
 
         <TouchableOpacity

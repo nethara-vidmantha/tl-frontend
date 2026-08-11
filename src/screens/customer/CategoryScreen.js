@@ -1,5 +1,12 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity
+} from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { COLORS, SIZES, SHADOWS } from '../../constants/theme';
 import { CATEGORIES } from '../../constants/categories';

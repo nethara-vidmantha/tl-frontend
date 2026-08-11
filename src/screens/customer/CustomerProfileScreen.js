@@ -1,9 +1,9 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   Image,
   TouchableOpacity,
@@ -16,22 +16,19 @@ import {
   Phone,
   Mail,
   MapPin,
-  Globe,
   HelpCircle,
   FileText,
   LogOut,
   ChevronRight,
-  Shield,
-  Briefcase,
   Camera,
   X,
-  Check,
   Image as ImageIcon
 } from 'lucide-react-native';
 import { COLORS, SIZES, SHADOWS } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation } from '../../context/LocationContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useToast } from '../../context/ToastContext';
 import { authApi } from '../../api';
 import Header from '../../components/common/Header';
 import Button from '../../components/common/Button';
@@ -41,9 +38,10 @@ import { pickImageFromDevice, uploadImageToSupabase } from '../../services/supab
 const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
 
 const CustomerProfileScreen = ({ navigation }) => {
-  const { user, logout, demoLogin, refreshUser } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const { selectedLocation } = useLocation();
   const { language, changeLanguage, t } = useLanguage();
+  const toast = useToast();
 
   // Edit Profile Modal State
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -69,10 +67,11 @@ const CustomerProfileScreen = ({ navigation }) => {
         const uploadedUrl = await uploadImageToSupabase(asset, 'avatars');
         if (uploadedUrl) {
           setCurrentAvatarUrl(uploadedUrl);
+          toast.success('Photo ready to save.');
         }
       }
     } catch (e) {
-      Alert.alert('Upload Error', 'Could not process selected image.');
+      toast.error('Could not process selected image.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -80,7 +79,7 @@ const CustomerProfileScreen = ({ navigation }) => {
 
   const handleSaveProfile = async () => {
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Name cannot be empty.');
+      toast.warning('Name cannot be empty.');
       return;
     }
 
@@ -93,9 +92,9 @@ const CustomerProfileScreen = ({ navigation }) => {
       });
       await refreshUser();
       setEditModalVisible(false);
-      Alert.alert('Success', 'Profile photo & information updated.');
+      toast.success('Profile photo & information updated.');
     } catch (err) {
-      Alert.alert('Update Error', err.message);
+      toast.error(err.message || 'Failed to update profile.');
     } finally {
       setUpdating(false);
     }
@@ -106,22 +105,6 @@ const CustomerProfileScreen = ({ navigation }) => {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Log Out', style: 'destructive', onPress: logout }
     ]);
-  };
-
-  const handleSwitchToWorker = async () => {
-    try {
-      await demoLogin('worker');
-    } catch (e) {
-      Alert.alert('Switch Error', e.message);
-    }
-  };
-
-  const handleSwitchToAdmin = async () => {
-    try {
-      await demoLogin('admin');
-    } catch (e) {
-      Alert.alert('Switch Error', e.message);
-    }
   };
 
   return (
@@ -163,36 +146,6 @@ const CustomerProfileScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Quick Demo Switcher Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔄 Switch Role Account</Text>
-          <View style={styles.card}>
-            <TouchableOpacity style={styles.roleSwitchRow} onPress={handleSwitchToWorker}>
-              <View style={[styles.roleSwitchIcon, { backgroundColor: '#EDE9FE' }]}>
-                <Briefcase size={20} color="#7C3AED" />
-              </View>
-              <View style={styles.roleSwitchInfo}>
-                <Text style={styles.roleSwitchTitle}>Switch to Worker Mode</Text>
-                <Text style={styles.roleSwitchSub}>Manage jobs, hourly rates & live status</Text>
-              </View>
-              <ChevronRight size={18} color={COLORS.textMuted} />
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity style={styles.roleSwitchRow} onPress={handleSwitchToAdmin}>
-              <View style={[styles.roleSwitchIcon, { backgroundColor: '#FEF3C7' }]}>
-                <Shield size={20} color="#D97706" />
-              </View>
-              <View style={styles.roleSwitchInfo}>
-                <Text style={styles.roleSwitchTitle}>Switch to Admin Console</Text>
-                <Text style={styles.roleSwitchSub}>Platform metrics, verification & disputes</Text>
-              </View>
-              <ChevronRight size={18} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* App Language Selector */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
@@ -230,7 +183,7 @@ const CustomerProfileScreen = ({ navigation }) => {
 
         {/* Active Location Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📍 Active Location</Text>
+          <Text style={styles.sectionTitle}>Active Location</Text>
           <View style={styles.card}>
             <View style={styles.locRow}>
               <MapPin size={18} color={COLORS.primary} />
@@ -305,7 +258,7 @@ const CustomerProfileScreen = ({ navigation }) => {
                 </View>
 
                 <View style={styles.modalPhotoActions}>
-                  <Text style={styles.modalSectionLabel}>Profile Photo (Supabase Storage)</Text>
+                  <Text style={styles.modalSectionLabel}>Profile Photo</Text>
                   <Text style={styles.modalPhotoSub}>Pick a real photo from your device</Text>
                   <View style={styles.photoBtnRow}>
                     <TouchableOpacity
@@ -473,37 +426,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     ...SHADOWS.sm
-  },
-  roleSwitchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8
-  },
-  roleSwitchIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12
-  },
-  roleSwitchInfo: {
-    flex: 1
-  },
-  roleSwitchTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.textPrimary
-  },
-  roleSwitchSub: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    marginTop: 2
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.divider,
-    marginVertical: 10
   },
   langGrid: {
     flexDirection: 'row',

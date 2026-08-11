@@ -4,11 +4,16 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 // Dynamically resolve the backend URL:
-// 1. Web browser uses localhost:5000
-// 2. Mobile device (Expo Go on physical phone) gets the host PC IP from Metro bundler hostUri (e.g. 192.168.96.16:8081)
-// 3. Android emulator fallback uses 10.0.2.2:5000
-// 4. Default LAN IP fallback uses 192.168.96.16:5000
+// 1. Environment Variable for Production (Vercel / Railway)
+// 2. Web browser in development uses localhost:5000/api
+// 3. Mobile device (Expo Go on physical phone) gets the host PC IP from Metro bundler hostUri
+// 4. Default LAN IP fallback uses 192.168.96.16:5000/api
 const getBaseUrl = () => {
+  // Check for Expo Public Env URL (Used when deploying to Vercel / Production)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
   if (Platform.OS === 'web') {
     return 'http://localhost:5000/api';
   }
@@ -22,7 +27,6 @@ const getBaseUrl = () => {
   if (hostUri) {
     const hostIp = hostUri.split(':')[0];
     if (hostIp && hostIp !== 'localhost' && hostIp !== '127.0.0.1') {
-      console.log(`[TaskLanka API] Detected Metro Host IP: http://${hostIp}:5000/api`);
       return `http://${hostIp}:5000/api`;
     }
   }
@@ -43,7 +47,7 @@ const client = axios.create({
   }
 });
 
-// Request Interceptor: Attach JWT Token and dynamic fallback
+// Request Interceptor: Attach JWT Token
 client.interceptors.request.use(
   async (config) => {
     try {
@@ -64,7 +68,6 @@ client.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear token on 401 Unauthorized
       try {
         await AsyncStorage.removeItem('@tasklanka_token');
         await AsyncStorage.removeItem('@tasklanka_user');
@@ -79,7 +82,7 @@ client.interceptors.response.use(
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         message = `Server timeout connecting to ${API_BASE_URL}. Please ensure your backend is running.`;
       } else if (error.message?.includes('Network Error') || !error.response) {
-        message = `Cannot reach backend at ${API_BASE_URL}.\n\nPlease ensure 'npm start' is running in TaskLanka/backend and your phone is on the same Wi-Fi network.`;
+        message = `Cannot reach backend at ${API_BASE_URL}.\n\nPlease ensure your backend is running on Railway or locally.`;
       } else {
         message = error.message || 'An unexpected communication error occurred.';
       }

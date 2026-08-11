@@ -1,9 +1,9 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Alert,
@@ -57,6 +57,7 @@ const RegisterScreen = ({ navigation }) => {
   const [selectedDistrict, setSelectedDistrict] = useState('Colombo');
   const [selectedProvince, setSelectedProvince] = useState('Western');
   const [address, setAddress] = useState('Bambalapitiya, Colombo');
+  const [coordinates, setCoordinates] = useState({ latitude: 6.8884, longitude: 79.8584 });
   const [townModalVisible, setTownModalVisible] = useState(false);
 
   // Worker-specific fields
@@ -68,16 +69,14 @@ const RegisterScreen = ({ navigation }) => {
   const handlePickPhoto = async (fromCamera = false) => {
     try {
       setUploadingPhoto(true);
-      const asset = await pickImageFromDevice(fromCamera);
-      if (asset) {
-        setProfileImageUri(asset.uri);
-        const uploadedUrl = await uploadImageToSupabase(asset, 'avatars');
-        if (uploadedUrl) {
-          setProfileImageUri(uploadedUrl);
-        }
+      const publicUrl = await pickImageFromDevice(fromCamera);
+      if (publicUrl) {
+        setProfileImageUri(publicUrl);
+        // toast?.success?.('Profile photo uploaded to Supabase!');
       }
-    } catch (e) {
-      Alert.alert('Upload Error', 'Could not process selected image.');
+    } catch (err) {
+      console.warn('Image pick error:', err);
+      // toast?.error?.('Could not process selected image.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -88,6 +87,12 @@ const RegisterScreen = ({ navigation }) => {
     setSelectedDistrict(locationData.district);
     setSelectedProvince(locationData.province);
     setAddress(locationData.address);
+    if (locationData.latitude && locationData.longitude) {
+      setCoordinates({
+        latitude: locationData.latitude,
+        longitude: locationData.longitude
+      });
+    }
   };
 
   const handleRegister = async () => {
@@ -124,6 +129,14 @@ const RegisterScreen = ({ navigation }) => {
         role,
         district: selectedDistrict,
         address: address || `${selectedTown}, ${selectedDistrict}, Sri Lanka`,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        location: {
+          address: address || `${selectedTown}, ${selectedDistrict}, Sri Lanka`,
+          district: selectedDistrict,
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude
+        },
         profileImage: finalAvatar,
         category: role === 'worker' ? category : undefined,
         hourlyRate: role === 'worker' ? Number(hourlyRate) : undefined,

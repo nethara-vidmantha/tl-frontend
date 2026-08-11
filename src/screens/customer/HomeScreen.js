@@ -1,9 +1,9 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
@@ -86,10 +86,23 @@ const HomeScreen = ({ navigation }) => {
         search: searchQuery.trim() || undefined
       };
 
-      const res = await workerApi.getWorkers(params);
-      if (res.data) {
-        setWorkers(res.data);
+      let res = await workerApi.getWorkers(params);
+      let list = res.data || [];
+
+      // If no workers found in selected district, fetch all Sri Lankan workers
+      if (list.length === 0 && selectedLocation.district) {
+        const fallbackRes = await workerApi.getWorkers({
+          category: selectedCategory !== 'all' ? selectedCategory : undefined,
+          search: searchQuery.trim() || undefined,
+          latitude: selectedLocation.latitude,
+          longitude: selectedLocation.longitude
+        });
+        if (fallbackRes.data && fallbackRes.data.length > 0) {
+          list = fallbackRes.data;
+        }
       }
+
+      setWorkers(list);
     } catch (err) {
       console.warn('Failed to load workers:', err.message);
     } finally {

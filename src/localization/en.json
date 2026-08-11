@@ -119,7 +119,7 @@
     "invoiceSummary": "Invoice Summary",
     "totalDue": "Total Amount Due",
     "chooseMethod": "Choose Payment Method",
-    "cash": "Cash on Delivery",
+    "cash": "Cash",
     "cashDesc": "Pay directly in cash to the professional upon completion.",
     "card": "Credit / Debit Card",
     "cardDesc": "Instant simulated card gateway sandbox.",

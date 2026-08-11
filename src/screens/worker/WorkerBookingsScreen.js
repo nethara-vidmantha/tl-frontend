@@ -1,27 +1,40 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
   Alert
 } from 'react-native';
-import { Calendar, Clock, MapPin, CheckCircle2, Play, Square } from 'lucide-react-native';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  CheckCircle2,
+  Play,
+  Square,
+  QrCode,
+  DollarSign
+} from 'lucide-react-native';
 import { COLORS, SIZES, SHADOWS } from '../../constants/theme';
 import { bookingApi } from '../../api';
 import Header from '../../components/common/Header';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import { LoadingSpinner, EmptyState } from '../../components/common/LoadingAndEmpty';
+import WorkerPaymentCollectionModal from '../../components/common/WorkerPaymentCollectionModal';
 
 const WorkerBookingsScreen = ({ navigation }) => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
+
+  // Payment Collection Modal State
+  const [selectedBookingForPayment, setSelectedBookingForPayment] = useState(null);
 
   useEffect(() => {
     fetchBookings();
@@ -132,12 +145,32 @@ const WorkerBookingsScreen = ({ navigation }) => {
                 <Text style={styles.billBreakdown}>
                   {b.hoursWorked || 1} hr(s) @ LKR {b.hourlyRate}/hr
                 </Text>
-                <Text style={styles.totalPrice}>LKR {b.amount}</Text>
+                <Text style={styles.totalPrice}>LKR {b.amount || (b.hourlyRate * (b.hoursWorked || 1))}</Text>
               </View>
+
+              {/* Show Payment QR button for completed jobs */}
+              {b.status === 'Completed' && (
+                <TouchableOpacity
+                  style={styles.collectPaymentBtn}
+                  onPress={() => setSelectedBookingForPayment(b)}
+                  activeOpacity={0.85}
+                >
+                  <QrCode size={16} color="#FFFFFF" />
+                  <Text style={styles.collectPaymentBtnText}>Show Payment QR / Collect Cash</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ))
         )}
       </ScrollView>
+
+      {/* Live QR & SlideToConfirm Payment Collection Modal */}
+      <WorkerPaymentCollectionModal
+        visible={!!selectedBookingForPayment}
+        booking={selectedBookingForPayment}
+        onClose={() => setSelectedBookingForPayment(null)}
+        onPaymentConfirmed={() => fetchBookings()}
+      />
     </SafeAreaView>
   );
 };
@@ -202,24 +235,24 @@ const styles = StyleSheet.create({
   },
   serviceName: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.primary,
-    marginTop: 1
+    marginTop: 2
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4
+    marginBottom: 4,
+    gap: 6
   },
   infoText: {
     fontSize: 12,
-    color: COLORS.textSecondary,
-    marginLeft: 6
+    color: COLORS.textSecondary
   },
   cardFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
@@ -230,9 +263,26 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted
   },
   totalPrice: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '900',
     color: COLORS.primary
+  },
+  collectPaymentBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: SIZES.radiusMd,
+    marginTop: 10,
+    gap: 8,
+    ...SHADOWS.sm
+  },
+  collectPaymentBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800'
   }
 });
 

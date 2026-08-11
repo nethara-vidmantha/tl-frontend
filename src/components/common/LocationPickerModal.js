@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import {
   View,
@@ -6,8 +7,7 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  TextInput,
-  SafeAreaView
+  TextInput
 } from 'react-native';
 import { MapPin, Navigation, X, Check, Search, ChevronRight, Compass } from 'lucide-react-native';
 import { COLORS, SIZES, SHADOWS } from '../../constants/theme';

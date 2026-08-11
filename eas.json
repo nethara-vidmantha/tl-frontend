@@ -1,0 +1,41 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EAS_SKIP_AUTO_FINGERPRINT": "1",
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EXPO_PUBLIC_API_URL": "https://web-production-d082ad.up.railway.app/api",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://igkjrsielojdzobrvcui.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_K2Qfwhw-25FR8Od_35T_ZA_2J26tJVJ",
+        "EXPO_PUBLIC_SUPABASE_BUCKET": "profile-pictures"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EAS_SKIP_AUTO_FINGERPRINT": "1",
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EXPO_PUBLIC_API_URL": "https://web-production-d082ad.up.railway.app/api",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://igkjrsielojdzobrvcui.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_K2Qfwhw-25FR8Od_35T_ZA_2J26tJVJ",
+        "EXPO_PUBLIC_SUPABASE_BUCKET": "profile-pictures"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

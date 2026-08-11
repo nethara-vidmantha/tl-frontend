@@ -1,10 +1,29 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { COLORS, SIZES } from '../../constants/theme';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { Wrench } from 'lucide-react-native';
+import { COLORS, SIZES, SHADOWS } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 
 const SplashScreen = ({ navigation }) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 20,
+        friction: 7,
+        useNativeDriver: true
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true
+      })
+    ]).start();
+  }, []);
 
   useEffect(() => {
     if (!isLoading) {
@@ -12,22 +31,34 @@ const SplashScreen = ({ navigation }) => {
         if (!isAuthenticated) {
           navigation.replace('Login');
         }
-      }, 800);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [isLoading, isAuthenticated]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.logoBox}>
+      <Animated.View
+        style={[
+          styles.logoBox,
+          {
+            opacity: opacityAnim,
+            transform: [{ scale: scaleAnim }]
+          }
+        ]}
+      >
+        <View style={styles.logoBadge}>
+          <Wrench size={36} color="#FFFFFF" />
+        </View>
         <Text style={styles.logoText}>
           Task<Text style={styles.logoHighlight}>ලංකා</Text>
         </Text>
-        <Text style={styles.tagline}>Smart On-Demand Service Discovery</Text>
-      </View>
+        <Text style={styles.tagline}>Smart Service Marketplace • Sri Lanka</Text>
+      </Animated.View>
+
       <View style={styles.footer}>
-        <ActivityIndicator color="#FFFFFF" size="large" />
-        <Text style={styles.loadingText}>Connecting...</Text>
+        <ActivityIndicator color="#FFFFFF" size="small" />
+        <Text style={styles.loadingText}>Starting TaskLanka...</Text>
       </View>
     </View>
   );
@@ -44,8 +75,20 @@ const styles = StyleSheet.create({
   logoBox: {
     alignItems: 'center'
   },
+  logoBadge: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: COLORS.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    ...SHADOWS.lg
+  },
   logoText: {
-    fontSize: 42,
+    fontSize: 44,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 1
@@ -55,10 +98,10 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 8,
     textAlign: 'center',
-    fontWeight: '500'
+    fontWeight: '600'
   },
   footer: {
     position: 'absolute',
@@ -66,9 +109,10 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   loadingText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.75)',
     fontSize: 12,
-    marginTop: 10
+    marginTop: 10,
+    fontWeight: '600'
   }
 });
 

@@ -1,9 +1,9 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Switch,
@@ -38,6 +38,7 @@ import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import { LoadingSpinner, EmptyState } from '../../components/common/LoadingAndEmpty';
 import { openTurnByTurnDirections } from '../../utils/navigationHelper';
+import WorkerPaymentCollectionModal from '../../components/common/WorkerPaymentCollectionModal';
 
 const WorkerDashboardScreen = ({ navigation }) => {
   const { user, refreshUser } = useAuth();
@@ -49,10 +50,13 @@ const WorkerDashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Complete Service Modal State (Works reliably on Android and iOS)
+  // Complete Service Modal State
   const [selectedBookingForCompletion, setSelectedBookingForCompletion] = useState(null);
   const [completionHours, setCompletionHours] = useState('1.0');
   const [completingLoading, setCompletingLoading] = useState(false);
+
+  // Payment Collection Modal State (Live QR & SlideToConfirm)
+  const [selectedBookingForPayment, setSelectedBookingForPayment] = useState(null);
 
   useEffect(() => {
     fetchWorkerData();
@@ -123,10 +127,16 @@ const WorkerDashboardScreen = ({ navigation }) => {
     try {
       setCompletingLoading(true);
       const hoursNum = parseFloat(completionHours) || 1.0;
-      await bookingApi.completeService(selectedBookingForCompletion._id, hoursNum);
+      const res = await bookingApi.completeService(selectedBookingForCompletion._id, hoursNum);
+      const updatedBooking = res?.data || {
+        ...selectedBookingForCompletion,
+        hoursWorked: hoursNum,
+        amount: Math.round(hoursNum * (selectedBookingForCompletion.hourlyRate || 1500))
+      };
       setSelectedBookingForCompletion(null);
-      Alert.alert('🎉 Service Completed!', `Invoice for ${hoursNum} hr(s) generated. Customer has been notified to make payment.`);
       fetchWorkerData();
+      // Automatically open payment collection modal for the worker to show QR or collect cash
+      setSelectedBookingForPayment(updatedBooking);
     } catch (err) {
       Alert.alert('Completion Error', err.message);
     } finally {
@@ -428,6 +438,14 @@ const WorkerDashboardScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Live QR & Slide to Confirm Payment Collection Modal */}
+      <WorkerPaymentCollectionModal
+        visible={!!selectedBookingForPayment}
+        booking={selectedBookingForPayment}
+        onClose={() => setSelectedBookingForPayment(null)}
+        onPaymentConfirmed={() => fetchWorkerData()}
+      />
     </SafeAreaView>
   );
 };

@@ -2,31 +2,86 @@ import * as ImagePicker from 'expo-image-picker';
 import { createClient } from '@supabase/supabase-js';
 import { Alert, Platform } from 'react-native';
 
-// Supabase Configuration
-// You can supply your own Project URL & Anon Key or use this configured instance
+// Live TaskLanka Supabase Storage Configuration
 export const SUPABASE_CONFIG = {
-  url: 'https://xyzcompany.supabase.co', // Replace with your Supabase Project URL
-  anonKey: 'public-anon-key-placeholder', // Replace with your Supabase Anon Key
-  bucketName: 'avatars'
+  url: process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://igkjrsielojdzobrvcui.supabase.co',
+  anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_K2Qfwhw-25FR8Od_35T_ZA_2J26tJVJ',
+  bucketName: process.env.EXPO_PUBLIC_SUPABASE_BUCKET || 'profile-pictures'
 };
 
-let supabase = null;
+// Safe React Native client initialization
+let supabaseClient = null;
 try {
-  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.url.startsWith('https://')) {
-    supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-  }
+  supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
+    auth: {
+      persistSession: false,
+      detectSessionInUrl: false,
+      autoRefreshToken: false
+    }
+  });
 } catch (e) {
-  console.warn('Supabase initialization notice:', e);
+  console.warn('Supabase initialization fallback:', e.message);
 }
+
+export const supabase = supabaseClient;
 
 /**
  * Configure Supabase credentials dynamically
  */
-export const configureSupabase = (url, anonKey, bucketName = 'avatars') => {
+export const configureSupabase = (url, anonKey, bucketName = 'profile-pictures') => {
   SUPABASE_CONFIG.url = url;
   SUPABASE_CONFIG.anonKey = anonKey;
   SUPABASE_CONFIG.bucketName = bucketName;
-  supabase = createClient(url, anonKey);
+  try {
+    supabaseClient = createClient(url, anonKey, {
+      auth: {
+        persistSession: false,
+        detectSessionInUrl: false,
+        autoRefreshToken: false
+      }
+    });
+  } catch (e) {
+    console.warn('Dynamic Supabase initialization error:', e.message);
+  }
+};
+
+/**
+ * Base64 string to ArrayBuffer helper for React Native / Expo binary uploads
+ */
+const base64ToArrayBuffer = (base64) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let bufferLength = base64.length * 0.75;
+  const len = base64.length;
+  let i;
+  let p = 0;
+  let encoded1, encoded2, encoded3, encoded4;
+
+  if (base64[base64.length - 1] === '=') {
+    bufferLength--;
+    if (base64[base64.length - 2] === '=') {
+      bufferLength--;
+    }
+  }
+
+  const arrayBuffer = new ArrayBuffer(bufferLength);
+  const bytes = new Uint8Array(arrayBuffer);
+
+  for (i = 0; i < len; i += 4) {
+    encoded1 = chars.indexOf(base64[i]);
+    encoded2 = chars.indexOf(base64[i + 1]);
+    encoded3 = chars.indexOf(base64[i + 2]);
+    encoded4 = chars.indexOf(base64[i + 3]);
+
+    bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+    if (encoded3 !== 64 && p < bufferLength) {
+      bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+    }
+    if (encoded4 !== 64 && p < bufferLength) {
+      bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+    }
+  }
+
+  return arrayBuffer;
 };
 
 /**
@@ -81,7 +136,8 @@ export const pickImageFromDevice = async (useCamera = false) => {
 };
 
 /**
- * Upload Image to Supabase Storage Bucket or return high-res data URI
+ * Upload Image to live Supabase Storage 'profile-pictures' Bucket
+ * Returns the public HTTPS URL directly
  */
 export const uploadImageToSupabase = async (imageAsset, customFolder = 'avatars') => {
   if (!imageAsset) return null;
@@ -89,31 +145,33 @@ export const uploadImageToSupabase = async (imageAsset, customFolder = 'avatars'
   const fileName = `${customFolder}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
 
   try {
-    // If user has connected live Supabase project
-    if (supabase && SUPABASE_CONFIG.anonKey !== 'public-anon-key-placeholder') {
-      const response = await fetch(imageAsset.uri);
-      const blob = await response.blob();
+    if (supabaseClient && imageAsset.base64) {
+      const arrayBuffer = base64ToArrayBuffer(imageAsset.base64);
 
-      const { data, error } = await supabase.storage
+      const { data, error } = await supabaseClient.storage
         .from(SUPABASE_CONFIG.bucketName)
-        .upload(fileName, blob, {
+        .upload(fileName, arrayBuffer, {
           contentType: 'image/jpeg',
           upsert: true
         });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Supabase upload notice:', error.message);
+      } else {
+        const { data: publicUrlData } = supabaseClient.storage
+          .from(SUPABASE_CONFIG.bucketName)
+          .getPublicUrl(fileName);
 
-      const { data: publicUrlData } = supabase.storage
-        .from(SUPABASE_CONFIG.bucketName)
-        .getPublicUrl(fileName);
-
-      return publicUrlData.publicUrl;
+        if (publicUrlData?.publicUrl) {
+          return publicUrlData.publicUrl;
+        }
+      }
     }
   } catch (err) {
-    console.warn('Supabase storage upload fallback to local URI:', err.message);
+    console.warn('Supabase storage upload error:', err.message);
   }
 
-  // Seamless Fallback: Use image URI or Base64 data URI directly
+  // Resilient fallback: Return Base64 or local URI
   if (imageAsset.base64) {
     return `data:image/jpeg;base64,${imageAsset.base64}`;
   }
